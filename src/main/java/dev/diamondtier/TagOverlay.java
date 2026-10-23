@@ -36,9 +36,9 @@ public final class TagOverlay {
         }
 
         Camera cam = mc.gameRenderer.getMainCamera();
-        Vec3 c = cam.getPosition();
-        double yaw = Math.toRadians(cam.getYRot());
-        double pitch = Math.toRadians(cam.getXRot());
+        Vec3 c = cam.position();
+        double yaw = Math.toRadians(cam.yRot());
+        double pitch = Math.toRadians(cam.xRot());
         double sy = Math.sin(yaw), cy = Math.cos(yaw), sp = Math.sin(pitch), cp = Math.cos(pitch);
         // camera forward / right / up
         double fx = -sy * cp, fy = -sp, fz = cy * cp;
