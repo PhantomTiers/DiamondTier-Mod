@@ -38,7 +38,7 @@ public final class TierManager {
     // titles set in this computer's config/diamondtier.json (checked before anything from the website)
     private static final Map<String, String> localTags = new HashMap<>();
 
-    private static String url = "https://diamondtier.pages.dev/players.json";
+    private static String url = "https://diamondtier.diamondtier.workers.dev/players.json";
     private static String mode = "overall";
     private static int refreshMinutes = 5;
 
@@ -139,6 +139,26 @@ public final class TierManager {
             case '4': return 0x3DE08A; // green
             default:  return 0xC080FF; // purple
         }
+    }
+
+    public static int playerCount() { return data.size(); }
+
+    public static boolean hasLocalTags() { return !localTags.isEmpty(); }
+
+    public static String urlInUse() { return url; }
+
+    /** Returns just the coloured label ("Creator" or "HT1"), or null if this player has none. */
+    public static Component titleFor(String playerName) {
+        String key = playerName.toLowerCase(Locale.ROOT);
+        String custom = localTags.containsKey(key) ? localTags.get(key) : tags.get(key);
+        if (custom != null && !custom.isBlank()) {
+            return Component.literal(custom).setStyle(Style.EMPTY.withColor(0xB057FF).withBold(true));
+        }
+        Map<String, String> tiers = data.get(key);
+        if (tiers == null) return null;
+        String tier = pick(tiers);
+        if (tier == null) return null;
+        return Component.literal(tier).setStyle(Style.EMPTY.withColor(color(tier)).withBold(true));
     }
 
     /** Returns e.g. "HT1 | " in colour, or null if this player is not on the list. */
