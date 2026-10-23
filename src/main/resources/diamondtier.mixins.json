@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "dev.diamondtier.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": ["EntityMixin"],
+  "injectors": { "defaultRequire": 1 }
+}

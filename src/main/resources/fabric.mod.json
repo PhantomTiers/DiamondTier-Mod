@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "diamondtier",
+  "version": "${version}",
+  "name": "DiamondTier Tags",
+  "description": "Shows a player's DiamondTier tier next to their name above their head.",
+  "authors": ["DiamondTier"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.diamondtier.DiamondTierMod"]
+  },
+  "mixins": ["diamondtier.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "1.21.11",
+    "java": ">=21"
+  }
+}
