@@ -35,6 +35,9 @@ public final class TierManager {
     // player name (lower case) -> custom label such as "Creator"
     private static volatile Map<String, String> tags = Map.of();
 
+    // titles set in this computer's config/diamondtier.json (checked before anything from the website)
+    private static final Map<String, String> localTags = new HashMap<>();
+
     private static String url = "https://diamondtier.pages.dev/players.json";
     private static String mode = "overall";
     private static int refreshMinutes = 5;
@@ -67,6 +70,11 @@ public final class TierManager {
             if (o.has("url")) url = o.get("url").getAsString();
             if (o.has("mode")) mode = o.get("mode").getAsString().toLowerCase(Locale.ROOT);
             if (o.has("refreshMinutes")) refreshMinutes = o.get("refreshMinutes").getAsInt();
+            if (o.has("tags") && o.get("tags").isJsonObject()) {
+                for (Map.Entry<String, JsonElement> t : o.getAsJsonObject("tags").entrySet()) {
+                    localTags.put(t.getKey().toLowerCase(Locale.ROOT), t.getValue().getAsString());
+                }
+            }
         } catch (Exception e) {
             System.err.println("[DiamondTier] Could not read config, using defaults: " + e);
         }
@@ -108,6 +116,7 @@ public final class TierManager {
             }
             tags = nextTags;
             data = next;
+            System.out.println("[DiamondTier] Loaded " + next.size() + " players and " + nextTags.size() + " tags from " + url);
         } catch (Exception e) {
             System.err.println("[DiamondTier] Could not load players.json: " + e);
         }
@@ -134,9 +143,10 @@ public final class TierManager {
 
     /** Returns e.g. "HT1 | " in colour, or null if this player is not on the list. */
     public static Component tagFor(String playerName) {
-        String custom = tags.get(playerName.toLowerCase(Locale.ROOT));
+        String key = playerName.toLowerCase(Locale.ROOT);
+        String custom = localTags.containsKey(key) ? localTags.get(key) : tags.get(key);
         if (custom != null && !custom.isBlank()) {
-            MutableComponent c = Component.literal(custom).setStyle(Style.EMPTY.withColor(0x46E6FF).withBold(true));
+            MutableComponent c = Component.literal(custom).setStyle(Style.EMPTY.withColor(0xB057FF).withBold(true));
             c.append(Component.literal(" | ").setStyle(Style.EMPTY.withColor(0x7F89A8).withBold(false)));
             return c;
         }
