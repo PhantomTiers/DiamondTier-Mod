@@ -32,6 +32,9 @@ public final class TierManager {
     // player name (lower case) -> (mode -> tier like "HT1")
     private static volatile Map<String, Map<String, String>> data = Map.of();
 
+    // player name (lower case) -> custom label such as "Creator"
+    private static volatile Map<String, String> tags = Map.of();
+
     private static String url = "https://diamondtier.pages.dev/players.json";
     private static String mode = "overall";
     private static int refreshMinutes = 5;
@@ -96,6 +99,14 @@ public final class TierManager {
                     if (!tiers.isEmpty()) next.put(p.get("name").getAsString().toLowerCase(Locale.ROOT), tiers);
                 }
             }
+            Map<String, String> nextTags = new HashMap<>();
+            if (root.isJsonObject() && root.getAsJsonObject().has("tags")
+                    && root.getAsJsonObject().get("tags").isJsonObject()) {
+                for (Map.Entry<String, JsonElement> t : root.getAsJsonObject().getAsJsonObject("tags").entrySet()) {
+                    nextTags.put(t.getKey().toLowerCase(Locale.ROOT), t.getValue().getAsString());
+                }
+            }
+            tags = nextTags;
             data = next;
         } catch (Exception e) {
             System.err.println("[DiamondTier] Could not load players.json: " + e);
@@ -123,6 +134,12 @@ public final class TierManager {
 
     /** Returns e.g. "HT1 | " in colour, or null if this player is not on the list. */
     public static Component tagFor(String playerName) {
+        String custom = tags.get(playerName.toLowerCase(Locale.ROOT));
+        if (custom != null && !custom.isBlank()) {
+            MutableComponent c = Component.literal(custom).setStyle(Style.EMPTY.withColor(0x46E6FF).withBold(true));
+            c.append(Component.literal(" | ").setStyle(Style.EMPTY.withColor(0x7F89A8).withBold(false)));
+            return c;
+        }
         Map<String, String> tiers = data.get(playerName.toLowerCase(Locale.ROOT));
         if (tiers == null) return null;
         String tier = pick(tiers);
