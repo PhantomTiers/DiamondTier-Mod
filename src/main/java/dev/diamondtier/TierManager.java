@@ -141,6 +141,32 @@ public final class TierManager {
         }
     }
 
+    private static final List<String> MODES =
+            List.of("crystal", "sword", "axe", "mace", "nethpot", "uhc", "dsmp", "smp");
+
+    /** Custom title for this player ("Creator"), or null. */
+    public static String customFor(String playerName) {
+        String key = playerName.toLowerCase(Locale.ROOT);
+        String custom = localTags.containsKey(key) ? localTags.get(key) : tags.get(key);
+        return (custom == null || custom.isBlank()) ? null : custom;
+    }
+
+    /** {mode, tier} for the player's best tier (ties go to the first mode in the site's order), or null. */
+    public static String[] bestFor(String playerName) {
+        Map<String, String> tiers = data.get(playerName.toLowerCase(Locale.ROOT));
+        if (tiers == null) return null;
+        if (!mode.equals("overall") && tiers.containsKey(mode)) return new String[]{mode, tiers.get(mode)};
+        String bestMode = null, bestTier = null;
+        for (String m : MODES) {
+            String t = tiers.get(m);
+            if (t == null) continue;
+            if (bestTier == null || ORDER.indexOf(t) < ORDER.indexOf(bestTier)) { bestTier = t; bestMode = m; }
+        }
+        return bestTier == null ? null : new String[]{bestMode, bestTier};
+    }
+
+    public static int tierColor(String tier) { return color(tier); }
+
     public static int playerCount() { return data.size(); }
 
     public static boolean hasLocalTags() { return !localTags.isEmpty(); }
