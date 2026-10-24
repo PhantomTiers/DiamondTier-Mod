@@ -38,6 +38,22 @@ public final class TierManager {
     // titles set in this computer's config/diamondtier.json (checked before anything from the website)
     private static final Map<String, String> localTags = new HashMap<>();
 
+    // player name (lower case) -> full profile for the GUI
+    private static volatile Map<String, Profile> profiles = Map.of();
+
+    private static final int[] PTS = {70, 55, 46, 32, 25, 13, 7, 4, 2, 1};
+
+    /** Everything the GUI shows for one player. */
+    public static final class Profile {
+        public final String name, region;
+        public final Map<String, String> tiers;
+        public final int points;
+        public int rank;
+        Profile(String name, String region, Map<String, String> tiers, int points) {
+            this.name = name; this.region = region; this.tiers = tiers; this.points = points;
+        }
+    }
+
     private static String url = "https://diamondtier.diamondtier.workers.dev/players.json";
     private static String mode = "overall";
     private static int refreshMinutes = 5;
@@ -95,6 +111,7 @@ public final class TierManager {
             JsonArray players = root.isJsonArray() ? root.getAsJsonArray()
                     : root.getAsJsonObject().getAsJsonArray("players");
             Map<String, Map<String, String>> next = new HashMap<>();
+            Map<String, Profile> nextProfiles = new HashMap<>();
             if (players != null) {
                 for (JsonElement pe : players) {
                     JsonObject p = pe.getAsJsonObject();
@@ -104,9 +121,22 @@ public final class TierManager {
                         String tier = t.getValue().getAsString().toUpperCase(Locale.ROOT);
                         if (ORDER.contains(tier)) tiers.put(t.getKey().toLowerCase(Locale.ROOT), tier);
                     }
-                    if (!tiers.isEmpty()) next.put(p.get("name").getAsString().toLowerCase(Locale.ROOT), tiers);
+                    if (!tiers.isEmpty()) {
+                        String nm = p.get("name").getAsString();
+                        next.put(nm.toLowerCase(Locale.ROOT), tiers);
+                        int pts = 0;
+                        for (String t : tiers.values()) pts += PTS[ORDER.indexOf(t)];
+                        String reg = p.has("region") && !p.get("region").isJsonNull() ? p.get("region").getAsString() : "";
+                        nextProfiles.put(nm.toLowerCase(Locale.ROOT), new Profile(nm, reg, tiers, pts));
+                    }
                 }
             }
+            for (Profile a : nextProfiles.values()) {
+                int better = 0;
+                for (Profile b : nextProfiles.values()) if (b.points > a.points) better++;
+                a.rank = better + 1;
+            }
+            profiles = nextProfiles;
             Map<String, String> nextTags = new HashMap<>();
             if (root.isJsonObject() && root.getAsJsonObject().has("tags")
                     && root.getAsJsonObject().get("tags").isJsonObject()) {
@@ -163,6 +193,24 @@ public final class TierManager {
             if (bestTier == null || ORDER.indexOf(t) < ORDER.indexOf(bestTier)) { bestTier = t; bestMode = m; }
         }
         return bestTier == null ? null : new String[]{bestMode, bestTier};
+    }
+
+    public static Profile profileFor(String playerName) {
+        return profiles.get(playerName.toLowerCase(Locale.ROOT));
+    }
+
+    public static boolean loaded() { return !data.isEmpty(); }
+
+    public static List<String> modes() { return MODES; }
+
+    public static String titleForPoints(int pts) {
+        if (pts >= 400) return "Combat Grandmaster";
+        if (pts >= 250) return "Combat Master";
+        if (pts >= 100) return "Combat Ace";
+        if (pts >= 50) return "Combat Specialist";
+        if (pts >= 20) return "Combat Cadet";
+        if (pts >= 10) return "Combat Novice";
+        return "Rookie";
     }
 
     public static int tierColor(String tier) { return color(tier); }
