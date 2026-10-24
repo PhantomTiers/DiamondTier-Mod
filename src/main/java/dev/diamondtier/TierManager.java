@@ -35,6 +35,9 @@ public final class TierManager {
     // player name (lower case) -> custom label such as "Creator"
     private static volatile Map<String, String> tags = Map.of();
 
+    // player name (lower case) -> mode that player chose to show above their name (from players.json "display")
+    private static volatile Map<String, String> display = Map.of();
+
     // titles set in this computer's config/diamondtier.json (checked before anything from the website)
     private static final Map<String, String> localTags = new HashMap<>();
 
@@ -144,6 +147,14 @@ public final class TierManager {
                     nextTags.put(t.getKey().toLowerCase(Locale.ROOT), t.getValue().getAsString());
                 }
             }
+            Map<String, String> nextDisplay = new HashMap<>();
+            if (root.isJsonObject() && root.getAsJsonObject().has("display")
+                    && root.getAsJsonObject().get("display").isJsonObject()) {
+                for (Map.Entry<String, JsonElement> t : root.getAsJsonObject().getAsJsonObject("display").entrySet()) {
+                    nextDisplay.put(t.getKey().toLowerCase(Locale.ROOT), t.getValue().getAsString().toLowerCase(Locale.ROOT));
+                }
+            }
+            display = nextDisplay;
             tags = nextTags;
             data = next;
             System.out.println("[DiamondTier] Loaded " + next.size() + " players and " + nextTags.size() + " tags from " + url);
@@ -185,6 +196,8 @@ public final class TierManager {
     public static String[] bestFor(String playerName) {
         Map<String, String> tiers = data.get(playerName.toLowerCase(Locale.ROOT));
         if (tiers == null) return null;
+        String chosen = display.get(playerName.toLowerCase(Locale.ROOT));
+        if (chosen != null && tiers.containsKey(chosen)) return new String[]{chosen, tiers.get(chosen)};
         if (!mode.equals("overall") && tiers.containsKey(mode)) return new String[]{mode, tiers.get(mode)};
         String bestMode = null, bestTier = null;
         for (String m : MODES) {
@@ -197,6 +210,25 @@ public final class TierManager {
 
     public static Profile profileFor(String playerName) {
         return profiles.get(playerName.toLowerCase(Locale.ROOT));
+    }
+
+    public static String currentMode() { return mode; }
+
+    /** Cycles overall -> crystal -> sword -> ... and saves it to config/diamondtier.json. */
+    public static String cycleMode() {
+        int i = mode.equals("overall") ? -1 : MODES.indexOf(mode);
+        mode = (i + 1 >= MODES.size()) ? "overall" : MODES.get(i + 1);
+        try {
+            Path file = FabricLoader.getInstance().getConfigDir().resolve("diamondtier.json");
+            JsonObject o = Files.exists(file) ? JsonParser.parseString(Files.readString(file)).getAsJsonObject() : new JsonObject();
+            o.addProperty("mode", mode);
+            if (!o.has("url")) o.addProperty("url", url);
+            if (!o.has("refreshMinutes")) o.addProperty("refreshMinutes", refreshMinutes);
+            Files.writeString(file, new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(o));
+        } catch (Exception e) {
+            System.err.println("[DiamondTier] Could not save config: " + e);
+        }
+        return mode;
     }
 
     public static boolean loaded() { return !data.isEmpty(); }
