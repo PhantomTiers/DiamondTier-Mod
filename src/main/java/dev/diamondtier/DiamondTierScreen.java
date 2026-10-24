@@ -26,8 +26,26 @@ public class DiamondTierScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal("Search Player"), b ->
                         Minecraft.getInstance().setScreen(new SearchScreen(this)))
                 .bounds(cx - 100, cy + 2, 200, 20).build());
+        addRenderableWidget(Button.builder(modeLabel(), b -> {
+                    TierManager.cycleMode();
+                    b.setMessage(modeLabel());
+                }).bounds(cx - 100, cy + 28, 200, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Back"), b -> onClose())
-                .bounds(cx - 100, cy + 34, 200, 20).build());
+                .bounds(cx - 100, cy + 60, 200, 20).build());
+    }
+
+    private static Component modeLabel() {
+        String m = TierManager.currentMode();
+        String shown;
+        switch (m) {
+            case "overall": shown = "Best tier"; break;
+            case "nethpot": shown = "Netherite Pot"; break;
+            case "dsmp": shown = "Diamond SMP"; break;
+            case "uhc": shown = "UHC"; break;
+            case "smp": shown = "SMP"; break;
+            default: shown = Character.toUpperCase(m.charAt(0)) + m.substring(1);
+        }
+        return Component.literal("Tag above heads: " + shown);
     }
 
     @Override
