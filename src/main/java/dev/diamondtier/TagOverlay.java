@@ -7,6 +7,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -55,9 +56,12 @@ public final class TagOverlay {
         for (AbstractClientPlayer p : mc.level.players()) {
             if (p == mc.player && !cam.isDetached()) continue; // not in first person
             if (p.isInvisible() || p.isSpectator()) continue;
-            Component title = TierManager.titleFor(p.getName().getString());
-            if (title == null) continue;
+            String pname = p.getName().getString();
+            String custom = TierManager.customFor(pname);
+            String[] best = TierManager.bestFor(pname);
+            if (custom == null && best == null) continue;
             if (p != mc.player && !mc.player.hasLineOfSight(p)) continue;
+
 
             Vec3 pos = p.getPosition(pt);
             double dx = pos.x - c.x;
@@ -73,12 +77,30 @@ public final class TagOverlay {
             float sY = (float) (h / 2.0 - y / z * focal);
 
             float scale = (float) Math.max(0.35, 0.025 * focal / z);
-            int tw = font.width(title);
+            Component cc = custom == null ? null
+                    : Component.literal(custom).setStyle(Style.EMPTY.withColor(0xB057FF).withBold(true));
+            Component tc = best == null ? null
+                    : Component.literal(best[1]).setStyle(Style.EMPTY.withColor(TierManager.tierColor(best[1])).withBold(true));
+            boolean icon = best != null && ModeIcons.has(best[0]);
+            int cw = cc == null ? 0 : font.width(cc);
+            int tw = tc == null ? 0 : font.width(tc);
+            int tierPart = best == null ? 0 : (icon ? 12 : 0) + tw;
+            int gap = (cc != null && best != null) ? 6 : 0;
+            int total = cw + gap + tierPart;
+            int x0 = -total / 2;
             g.pose().pushMatrix();
             g.pose().translate(sx, sY);
             g.pose().scale(scale, scale);
-            g.fill(-tw / 2 - 2, -1, tw / 2 + 2, 9, 0x66000000);
-            g.drawString(font, title, -tw / 2, 0, 0xFFFFFFFF, true);
+            g.fill(x0 - 3, -2, x0 + total + 3, 10, 0x66000000);
+            int cx = x0;
+            if (cc != null) {
+                g.drawString(font, cc, cx, 0, 0xFFFFFFFF, true);
+                cx += cw + gap;
+            }
+            if (best != null) {
+                if (icon) { ModeIcons.draw(g, best[0], cx, -1, 10f); cx += 12; }
+                g.drawString(font, tc, cx, 0, 0xFFFFFFFF, true);
+            }
             g.pose().popMatrix();
         }
     }
