@@ -71,8 +71,8 @@ public class ProfileScreen extends Screen {
         int ph = Math.min(this.height - 44, 220);
         int l = (this.width - pw) / 2;
         int t = 8;
-        g.fill(l - 1, t - 1, l + pw + 1, t + ph + 1, 0xAA4A7CE0);
-        g.fill(l, t, l + pw, t + ph, 0x99163A8C);
+        g.fill(l - 1, t - 1, l + pw + 1, t + ph + 1, 0x99345CB8);
+        g.fill(l, t, l + pw, t + ph, 0x80060E2E);
 
         TierManager.Profile pr = TierManager.profileFor(name);
         String custom = TierManager.customFor(name);
