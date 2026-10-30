@@ -3,7 +3,7 @@
   "id": "diamondtier",
   "version": "${version}",
   "name": "DiamondTier Tags",
-  "description": "Shows a player's DiamondTier tier next to their name above their head.",
+  "description": "Shows a player's DiamondTier tier (or title) above their head.",
   "authors": ["DiamondTier"],
   "license": "MIT",
   "environment": "client",
@@ -13,7 +13,7 @@
   "mixins": ["diamondtier.mixins.json"],
   "depends": {
     "fabricloader": ">=0.16.0",
-    "minecraft": "1.21.11",
+    "minecraft": ">=1.21.6 <=1.21.11",
     "java": ">=21"
   }
 }
