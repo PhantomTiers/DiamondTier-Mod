@@ -24,6 +24,7 @@ public final class TagOverlay {
     private static final float NAME_GAP = 4f;
     private static boolean announced = false;
     private static int ticks = 0;
+    private static final java.util.Set<String> DBG = new java.util.HashSet<>();
 
     private TagOverlay() {}
 
@@ -32,6 +33,7 @@ public final class TagOverlay {
         if (mc.level == null || mc.player == null || mc.options.hideGui) {
             announced = false;
             ticks = 0;
+            DBG.clear();
             return;
         }
         // one message in chat a few seconds after joining, so you can see the mod is alive
@@ -65,8 +67,13 @@ public final class TagOverlay {
             String pname = p.getName().getString();
             String custom = TierManager.customFor(pname);
             String[] best = TierManager.bestFor(pname);
+            boolean los = p == mc.player || mc.player.hasLineOfSight(p);
+            if (DBG.add(pname)) { // one debug line in chat per player, remove later
+                mc.gui.getChat().addMessage(Component.literal("[DT debug] " + pname + " tier=" + (best == null ? "none" : best[1])
+                        + " custom=" + custom + " los=" + los + " self=" + (p == mc.player)));
+            }
             if (custom == null && best == null) continue;
-            if (p != mc.player && !mc.player.hasLineOfSight(p)) continue;
+            if (!los) continue;
 
 
             Vec3 pos = p.getPosition(pt);
