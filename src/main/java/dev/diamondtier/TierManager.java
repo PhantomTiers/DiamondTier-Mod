@@ -74,7 +74,15 @@ public final class TierManager {
             t.setDaemon(true);
             return t;
         });
-        ex.scheduleWithFixedDelay(() -> fetch(client), 0, Math.max(1, refreshMinutes), TimeUnit.MINUTES);
+        // show the last download straight away (before the network answers), then refresh in the background
+        try {
+            Path cache = FabricLoader.getInstance().getConfigDir().resolve("diamondtier-cache.json");
+            if (Files.exists(cache)) apply(Files.readString(cache));
+        } catch (Exception ignored) {
+        }
+        ex.scheduleWithFixedDelay(() -> {
+            if (!fetch(client)) ex.schedule(() -> { if (!fetch(client)) ex.schedule(() -> fetch(client), 60, TimeUnit.SECONDS); }, 10, TimeUnit.SECONDS);
+        }, 0, Math.max(1, refreshMinutes), TimeUnit.MINUTES);
     }
 
     private static void loadConfig() {
@@ -99,7 +107,8 @@ public final class TierManager {
         }
     }
 
-    private static void fetch(HttpClient client) {
+    /** Downloads players.json; returns true if it worked. */
+    private static boolean fetch(HttpClient client) {
         try {
             HttpRequest req = HttpRequest.newBuilder(URI.create(url))
                     .timeout(Duration.ofSeconds(10))
@@ -108,9 +117,24 @@ public final class TierManager {
             HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
             if (res.statusCode() != 200) {
                 System.err.println("[DiamondTier] players.json returned HTTP " + res.statusCode());
-                return;
+                return false;
             }
-            JsonElement root = JsonParser.parseString(res.body());
+            apply(res.body());
+            try {
+                Files.writeString(FabricLoader.getInstance().getConfigDir().resolve("diamondtier-cache.json"), res.body());
+            } catch (Exception ignored) {
+            }
+            return true;
+        } catch (Exception e) {
+            System.err.println("[DiamondTier] Could not load players.json: " + e);
+            return false;
+        }
+    }
+
+    /** Turns a players.json text into the lookup tables. */
+    private static void apply(String body) {
+        try {
+            JsonElement root = JsonParser.parseString(body);
             JsonArray players = root.isJsonArray() ? root.getAsJsonArray()
                     : root.getAsJsonObject().getAsJsonArray("players");
             Map<String, Map<String, String>> next = new HashMap<>();
@@ -159,7 +183,7 @@ public final class TierManager {
             data = next;
             System.out.println("[DiamondTier] Loaded " + next.size() + " players and " + nextTags.size() + " tags from " + url);
         } catch (Exception e) {
-            System.err.println("[DiamondTier] Could not load players.json: " + e);
+            System.err.println("[DiamondTier] Could not read players.json: " + e);
         }
     }
 
