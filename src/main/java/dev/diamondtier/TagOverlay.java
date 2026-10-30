@@ -11,11 +11,17 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Draws the DiamondTier title (tier or "Creator") as its own line above every player's head.
+ * Draws the DiamondTier title (tier or "Creator") to the LEFT of every player's name tag, so it never covers the head.
  * It is drawn on the screen at the spot where the head is, so it does not depend on how the
  * game (or Lunar Client) draws the normal name tag.
  */
 public final class TagOverlay {
+    /** Extra size on top of the name tag's own size (1.0 = same size as the name). */
+    private static final float TAG_SCALE = 1.0f;
+    /** Height of the middle of the name tag above the player's head box. Nudge if the tag sits too high/low. */
+    private static final double NAME_Y = 0.60;
+    /** How far (in pixels of name-tag text) the tag stays away from the left edge of the name. */
+    private static final float NAME_GAP = 4f;
     private static boolean announced = false;
     private static int ticks = 0;
 
@@ -64,19 +70,23 @@ public final class TagOverlay {
 
 
             Vec3 pos = p.getPosition(pt);
+            // middle of the name tag, then shifted left by half the name width (plus a gap)
+            double nameW = font.width(p.getName());
+            double left = (nameW / 2.0 + NAME_GAP) * 0.025;
             double dx = pos.x - c.x;
-            double dy = pos.y + p.getBbHeight() + 0.85 - c.y; // just above the name tag
+            double dy = pos.y + p.getBbHeight() + NAME_Y - c.y;
             double dz = pos.z - c.z;
             double z = dx * fx + dy * fy + dz * fz;
             if (z < 0.3) continue;
             double dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
             if (dist > 64) continue;
-            double x = dx * rx + dy * ry + dz * rz;
+            double x = dx * rx + dy * ry + dz * rz - left; // left of the name
             double y = dx * ux + dy * uy + dz * uz;
             float sx = (float) (w / 2.0 + x / z * focal);
             float sY = (float) (h / 2.0 - y / z * focal);
 
-            float scale = (float) Math.max(0.35, 0.025 * focal / z);
+            // same on-screen size as the vanilla name tag, so it lines up with the name at any distance
+            float scale = (float) Math.max(0.35, Math.min(3.0, 0.025 * focal / z)) * TAG_SCALE;
             Component cc = custom == null ? null
                     : Component.literal(custom).setStyle(Style.EMPTY.withColor(0xB057FF).withBold(true));
             Component tc = best == null ? null
@@ -87,11 +97,12 @@ public final class TagOverlay {
             int tierPart = best == null ? 0 : (icon ? 12 : 0) + tw;
             int gap = (cc != null && best != null) ? 6 : 0;
             int total = cw + gap + tierPart;
-            int x0 = -total / 2;
+            int x0 = -total; // the tag ends at the left edge of the name and grows to the left
             g.pose().pushMatrix();
             g.pose().translate(sx, sY);
             g.pose().scale(scale, scale);
-            g.fill(x0 - 3, -2, x0 + total + 3, 10, 0x66000000);
+            g.pose().translate(0f, -4.5f);
+            g.fill(x0 - 2, -2, x0 + total + 2, 10, 0x66000000);
             int cx = x0;
             if (cc != null) {
                 g.drawString(font, cc, cx, 0, 0xFFFFFFFF, true);
