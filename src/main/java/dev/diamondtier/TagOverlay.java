@@ -24,7 +24,6 @@ public final class TagOverlay {
     private static final float NAME_GAP = 4f;
     private static boolean announced = false;
     private static int ticks = 0;
-    private static final java.util.Set<String> DBG = new java.util.HashSet<>();
 
     private TagOverlay() {}
 
@@ -33,7 +32,6 @@ public final class TagOverlay {
         if (mc.level == null || mc.player == null || mc.options.hideGui) {
             announced = false;
             ticks = 0;
-            DBG.clear();
             return;
         }
         // one message in chat a few seconds after joining, so you can see the mod is alive
@@ -68,10 +66,6 @@ public final class TagOverlay {
             String custom = TierManager.customFor(pname);
             String[] best = TierManager.bestFor(pname);
             boolean los = p == mc.player || mc.player.hasLineOfSight(p);
-            if (DBG.add(pname)) { // one debug line in chat per player, remove later
-                mc.gui.getChat().addMessage(Component.literal("[DT debug] " + pname + " tier=" + (best == null ? "none" : best[1])
-                        + " custom=" + custom + " los=" + los + " self=" + (p == mc.player)));
-            }
             if (custom == null && best == null) continue;
             if (!los) continue;
 
@@ -94,8 +88,7 @@ public final class TagOverlay {
 
             // same on-screen size as the vanilla name tag, so it lines up with the name at any distance
             float scale = (float) Math.max(0.35, Math.min(3.0, 0.025 * focal / z)) * TAG_SCALE;
-            Component cc = custom == null ? null
-                    : Component.literal(custom).setStyle(Style.EMPTY.withColor(0xB057FF).withBold(true));
+            Component cc = null; // no "Creator" text; the hammer icon is drawn above the head instead
             Component tc = best == null ? null
                     : Component.literal(best[1]).setStyle(Style.EMPTY.withColor(TierManager.tierColor(best[1])).withBold(true));
             boolean icon = best != null && ModeIcons.has(best[0]);
@@ -104,6 +97,7 @@ public final class TagOverlay {
             int tierPart = best == null ? 0 : (icon ? 12 : 0) + tw;
             int gap = (cc != null && best != null) ? 6 : 0;
             int total = cw + gap + tierPart;
+            if (best == null) { drawHammer(g, p, pos, c, fx, fy, fz, rx, ry, rz, ux, uy, uz, w, h, focal, nameW); continue; }
             int x0 = -total; // the tag ends at the left edge of the name and grows to the left
             g.pose().pushMatrix();
             g.pose().translate(sx, sY);
@@ -120,6 +114,25 @@ public final class TagOverlay {
                 g.drawString(font, tc, cx, 0, 0xFFFFFFFF, true);
             }
             g.pose().popMatrix();
+            if (custom != null) drawHammer(g, p, pos, c, fx, fy, fz, rx, ry, rz, ux, uy, uz, w, h, focal, nameW);
         }
+    }
+
+    /** The DiamondTier hammer badge, centred above the name tag (only for players with a custom title). */
+    private static void drawHammer(GuiGraphics g, AbstractClientPlayer p, Vec3 pos, Vec3 c,
+            double fx, double fy, double fz, double rx, double ry, double rz, double ux, double uy, double uz,
+            int w, int h, double focal, double nameW) {
+        double dx = pos.x - c.x, dy = pos.y + p.getBbHeight() + NAME_Y + 0.42 - c.y, dz = pos.z - c.z;
+        double z = dx * fx + dy * fy + dz * fz;
+        if (z < 0.3) return;
+        double x = dx * rx + dy * ry + dz * rz;
+        double y = dx * ux + dy * uy + dz * uz;
+        float sx = (float) (w / 2.0 + x / z * focal), sY = (float) (h / 2.0 - y / z * focal);
+        float sc = (float) Math.max(0.35, Math.min(3.0, 0.025 * focal / z)) * TAG_SCALE;
+        g.pose().pushMatrix();
+        g.pose().translate(sx, sY);
+        g.pose().scale(sc, sc);
+        ModeIcons.draw(g, "creator", -7, -7, 14f);
+        g.pose().popMatrix();
     }
 }
